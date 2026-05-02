@@ -40,15 +40,9 @@ The package name and installed binary are both `bounty-cli`.
 
 ## Agent Skills
 
-Bounty publishes customer-safe marketing skills for AI coding agents. They teach
-agents how to use the CLI for common marketing workflows without direct database
-or warehouse access.
-
-Public onboarding document:
-
-```bash
-curl -s https://app.bountygrowth.com/agent-onboarding/SKILL.md
-```
+Bounty ships customer-safe marketing skills for AI coding agents in this package
+under `skills/`. They teach agents how to use the CLI for common marketing
+workflows without direct database or warehouse access.
 
 Manual skill install:
 

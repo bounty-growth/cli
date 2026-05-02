@@ -2,13 +2,10 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
-  rmSync,
 } from "node:fs";
-import { execFileSync } from "node:child_process";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import path from "node:path";
 
 type AgentConfig = {
@@ -70,29 +67,16 @@ const AGENTS: AgentConfig[] = [
   },
 ];
 
-export async function installSkillsNative(
-  repo: string,
-  options: NativeInstallOptions = {}
-) {
-  const bundledSkillsDir = isBundledSkillsRepo(repo)
-    ? resolveBundledSkillsDir()
-    : null;
+export async function installSkillsNative(options: NativeInstallOptions = {}) {
+  const bundledSkillsDir = resolveBundledSkillsDir();
 
-  if (bundledSkillsDir) {
-    installFromSkillsDir(bundledSkillsDir, options);
-    return;
+  if (!bundledSkillsDir) {
+    throw new Error(
+      "No bundled Bounty skills directory found in this CLI package."
+    );
   }
 
-  const tempDir = mkdtempSync(path.join(tmpdir(), "bounty-skills-"));
-
-  try {
-    cloneRepo(repo, tempDir);
-    const skillsDir = path.join(tempDir, SKILLS_SUBDIR);
-
-    installFromSkillsDir(skillsDir, options, repo);
-  } finally {
-    rmSync(tempDir, { recursive: true, force: true });
-  }
+  installFromSkillsDir(bundledSkillsDir, options);
 }
 
 function installFromSkillsDir(
@@ -115,10 +99,6 @@ function installFromSkillsDir(
   }
 }
 
-function isBundledSkillsRepo(repo: string) {
-  return repo === "bounty-growth/cli";
-}
-
 function resolveBundledSkillsDir() {
   const entrypointDir = process.argv[1]
     ? path.dirname(path.resolve(process.argv[1]))
@@ -130,52 +110,6 @@ function resolveBundledSkillsDir() {
   ];
 
   return candidates.find((candidate) => existsSync(candidate)) ?? null;
-}
-
-function cloneRepo(repo: string, destination: string) {
-  const repoUrl = normalizeRepoUrl(repo);
-
-  try {
-    execFileSync("git", ["clone", "--depth", "1", repoUrl, destination], {
-      stdio: "ignore",
-    });
-    return;
-  } catch {
-    // Keep going to downloader fallback.
-  }
-
-  const tarball = path.join(destination, "repo.tar.gz");
-  const tarballUrl = `https://api.github.com/repos/${repo}/tarball`;
-
-  try {
-    execFileSync("curl", ["-fsSL", "-o", tarball, "-L", tarballUrl], {
-      stdio: "ignore",
-    });
-  } catch {
-    throw new Error(
-      "Unable to download Bounty skills. Install git or curl, or use the bundled Bounty CLI package."
-    );
-  }
-
-  execFileSync(
-    "tar",
-    ["-xzf", tarball, "-C", destination, "--strip-components=1"],
-    {
-      stdio: "ignore",
-    }
-  );
-}
-
-function normalizeRepoUrl(repo: string) {
-  if (
-    repo.startsWith("https://") ||
-    repo.startsWith("git@") ||
-    repo.startsWith("ssh://")
-  ) {
-    return repo;
-  }
-
-  return `https://github.com/${repo}.git`;
 }
 
 function discoverSkills(baseDir: string): SkillEntry[] {
