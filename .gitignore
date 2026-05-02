@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Local CLI/config output
+.bounty/
+config.local.*
