@@ -24,6 +24,25 @@ describe("setup command", () => {
     });
   });
 
+  it("does not make global installs implicit", async () => {
+    const installSkills = vi.fn();
+
+    await handleSetupCommand(
+      "skills",
+      {},
+      {
+        installSkills,
+      }
+    );
+
+    expect(installSkills).toHaveBeenCalledWith({
+      agent: undefined,
+      all: undefined,
+      global: undefined,
+      yes: undefined,
+    });
+  });
+
   it("rejects unsupported setup subcommands", async () => {
     await expect(
       handleSetupCommand("mcp" as never, {}, { installSkills: vi.fn() })

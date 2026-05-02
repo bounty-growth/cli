@@ -6,7 +6,6 @@ description: |
   platform filtering, or a specific campaign's details.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Campaigns

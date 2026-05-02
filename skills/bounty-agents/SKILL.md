@@ -5,7 +5,6 @@ description: |
   configured agents, system agents, triggers, output types, or agent context.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Agents

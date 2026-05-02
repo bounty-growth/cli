@@ -5,7 +5,6 @@ description: |
   prioritized findings, evidence, or recommendations for one campaign.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Campaign Analysis

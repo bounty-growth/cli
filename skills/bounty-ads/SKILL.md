@@ -6,7 +6,6 @@ description: |
   fatigue signals.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Ads

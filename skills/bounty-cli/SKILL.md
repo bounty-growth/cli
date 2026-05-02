@@ -7,7 +7,6 @@ description: |
   fatigue, inspect generated actions, or run a Bounty CLI workflow.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty CLI

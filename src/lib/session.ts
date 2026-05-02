@@ -43,14 +43,46 @@ export async function loadSession(): Promise<StoredSession | null> {
 }
 
 export async function saveSession(session: StoredSession) {
-  const { mkdir, writeFile } = await import("node:fs/promises");
+  const { chmod, lstat, mkdir, rename, rm: removeFile, writeFile } =
+    await import("node:fs/promises");
+  const sessionPath = getSessionPath();
+  const tempPath = `${sessionPath}.${process.pid}.${Date.now()}.tmp`;
 
   await mkdir(getConfigDir(), { recursive: true, mode: 0o700 });
-  await writeFile(
-    getSessionPath(),
-    `${JSON.stringify(sessionSchema.parse(session), null, 2)}\n`,
-    { mode: 0o600 }
-  );
+
+  try {
+    const stat = await lstat(sessionPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to write Bounty CLI session through symlink: ${sessionPath}`
+      );
+    }
+  } catch (error) {
+    if (!isNodeError(error, "ENOENT")) {
+      throw error;
+    }
+  }
+
+  try {
+    await writeFile(
+      tempPath,
+      `${JSON.stringify(sessionSchema.parse(session), null, 2)}\n`,
+      { mode: 0o600, flag: "wx" }
+    );
+    await chmod(tempPath, 0o600);
+    await rename(tempPath, sessionPath);
+
+    const stat = await lstat(sessionPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to write Bounty CLI session through symlink: ${sessionPath}`
+      );
+    }
+    await chmod(sessionPath, 0o600);
+  } catch (error) {
+    await removeFile(tempPath, { force: true });
+    throw error;
+  }
 
   const config = await getEffectiveConfig();
   await saveConfig({
@@ -70,4 +102,13 @@ export function sessionNeedsRefresh(
   skewMs = 60_000
 ) {
   return session.expiresAt * 1000 - now <= skewMs;
+}
+
+function isNodeError(error: unknown, code: string) {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === code
+  );
 }

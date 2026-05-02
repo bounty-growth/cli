@@ -6,7 +6,6 @@ description: |
   daily creative performance.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Creatives

@@ -6,13 +6,14 @@ The CLI talks to Bounty API routes using a normal Supabase user session. It does
 
 ## Quick Start
 
-For AI coding agents, install the CLI skills and authenticate in one step:
+For AI coding agents, install the CLI skills for one agent and authenticate in
+one step:
 
 ```bash
-npx -y bounty-cli@latest init --all --browser
+npx -y bounty-cli@latest init --agent codex --browser
 ```
 
-- `--all` installs Bounty marketing skills to every detected AI coding agent
+- `--agent codex` installs Bounty marketing skills for Codex in the current project
 - `--browser` opens Bounty browser login for CLI authentication
 
 After installing skills, restart your AI agent so it can discover them.
@@ -52,17 +53,18 @@ curl -s https://app.bountygrowth.com/agent-onboarding/SKILL.md
 Manual skill install:
 
 ```bash
-bounty-cli setup skills
+bounty-cli setup skills --agent codex
 ```
 
-The CLI installs skills from:
+The CLI installs bundled skills from this package. To install to every detected
+agent, opt in explicitly:
 
 ```bash
-npx -y skills add bounty-growth/cli --full-depth --global --all --yes
+bounty-cli setup skills --all
 ```
 
-The source for those skills lives in this repository under `skills/` and is
-included in the published npm package.
+Skill installs are project-local by default. Use `--global` only when you want
+every project for the selected agent to discover the Bounty skills.
 
 Available skills:
 
@@ -177,8 +179,8 @@ bounty-cli config set api-url <url>
 Setup:
 
 ```bash
-bounty-cli init [--all] [--browser] [--agent <agent>] [--skip-auth] [--skip-skills]
-bounty-cli setup skills [--agent <agent>]
+bounty-cli init [--agent <agent> | --all] [--global] [--browser] [--skip-auth] [--skip-skills]
+bounty-cli setup skills [--agent <agent> | --all] [--global]
 ```
 
 Campaigns:

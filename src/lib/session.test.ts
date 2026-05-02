@@ -1,10 +1,19 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   clearSession,
+  getSessionPath,
   loadSession,
   saveSession,
   sessionNeedsRefresh,
@@ -40,6 +49,27 @@ describe("CLI session storage", () => {
 
     await clearSession();
     await expect(loadSession()).resolves.toBeNull();
+  });
+
+  it("tightens permissions on existing session files", async () => {
+    await mkdir(tempDir, { recursive: true });
+    await writeFile(getSessionPath(), "{}\n", { mode: 0o644 });
+    await chmod(getSessionPath(), 0o644);
+
+    await saveSession(storedSession);
+
+    const mode = (await stat(getSessionPath())).mode & 0o777;
+    expect(mode).toBe(0o600);
+  });
+
+  it("rejects symlinked session files", async () => {
+    const targetPath = path.join(tempDir, "target-session.json");
+    await writeFile(targetPath, "{}\n", { mode: 0o600 });
+    await symlink(targetPath, getSessionPath());
+
+    await expect(saveSession(storedSession)).rejects.toThrow(
+      "Refusing to write Bounty CLI session through symlink"
+    );
   });
 
   it("detects sessions that are inside the refresh window", () => {

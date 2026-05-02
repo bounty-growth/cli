@@ -75,4 +75,27 @@ describe("init command", () => {
     expect(installSkills).not.toHaveBeenCalled();
     expect(signInWithBrowser).not.toHaveBeenCalled();
   });
+
+  it("does not default to all-agent skill installs", async () => {
+    const installSkills = vi.fn();
+
+    await handleInitCommand(
+      {
+        skipAuth: true,
+      },
+      {
+        installSkills,
+        getEffectiveConfig: vi.fn(async () => config),
+        signInWithBrowser: vi.fn(),
+        writeLine: vi.fn(),
+      }
+    );
+
+    expect(installSkills).toHaveBeenCalledWith({
+      agent: undefined,
+      all: undefined,
+      global: undefined,
+      yes: true,
+    });
+  });
 });

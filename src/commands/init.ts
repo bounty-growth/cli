@@ -27,7 +27,7 @@ export function registerInitCommand(program: Command) {
       "Install skills to every detected AI coding agent unless --agent is used"
     )
     .option("-y, --yes", "Run setup non-interactively")
-    .option("-g, --global", "Install skills globally", true)
+    .option("-g, --global", "Install skills globally instead of project-local")
     .option("-a, --agent <agent>", "Install skills to a specific agent")
     .option(
       "-b, --browser",
@@ -53,7 +53,7 @@ export async function handleInitCommand(
     output("Installing Bounty marketing skills for AI coding agents...");
     await install({
       agent: options.agent,
-      all: options.all ?? true,
+      all: options.all,
       global: options.global,
       yes: options.yes ?? true,
     });
@@ -73,6 +73,8 @@ export async function handleInitCommand(
   }
 
   output(
-    "Setup complete. Restart your AI agent so it can discover the skills."
+    options.skipSkills
+      ? "Setup complete."
+      : "Setup complete. Restart your AI agent so it can discover the skills."
   );
 }

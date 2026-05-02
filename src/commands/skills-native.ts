@@ -1,6 +1,7 @@
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -13,8 +14,8 @@ import path from "node:path";
 type AgentConfig = {
   name: string;
   aliases: string[];
-  globalSkillsDir: string;
   detectDir: string;
+  skillsDir: string;
 };
 
 type SkillEntry = {
@@ -25,6 +26,7 @@ type SkillEntry = {
 export type NativeInstallOptions = {
   agent?: string;
   all?: boolean;
+  global?: boolean;
 };
 
 const SKILLS_SUBDIR = "skills";
@@ -33,38 +35,38 @@ const AGENTS: AgentConfig[] = [
   {
     name: "claude-code",
     aliases: ["claude", "claude-code"],
-    globalSkillsDir: ".claude/skills",
     detectDir: ".claude",
+    skillsDir: ".claude/skills",
   },
   {
     name: "codex",
     aliases: ["codex"],
-    globalSkillsDir: ".codex/skills",
     detectDir: ".codex",
+    skillsDir: ".codex/skills",
   },
   {
     name: "cursor",
     aliases: ["cursor"],
-    globalSkillsDir: ".cursor/skills",
     detectDir: ".cursor",
+    skillsDir: ".cursor/skills",
   },
   {
     name: "windsurf",
     aliases: ["windsurf"],
-    globalSkillsDir: ".windsurf/skills",
     detectDir: ".windsurf",
+    skillsDir: ".windsurf/skills",
   },
   {
     name: "opencode",
     aliases: ["opencode", "open-code"],
-    globalSkillsDir: ".config/opencode/skills",
     detectDir: ".config/opencode",
+    skillsDir: ".config/opencode/skills",
   },
   {
     name: "gemini-cli",
     aliases: ["gemini", "gemini-cli"],
-    globalSkillsDir: ".gemini/skills",
     detectDir: ".gemini",
+    skillsDir: ".gemini/skills",
   },
 ];
 
@@ -109,7 +111,7 @@ function installFromSkillsDir(
 
   const agents = resolveTargetAgents(options);
   for (const agent of agents) {
-    installForAgent(agent, skills);
+    installForAgent(agent, skills, options);
   }
 }
 
@@ -151,7 +153,7 @@ function cloneRepo(repo: string, destination: string) {
     });
   } catch {
     throw new Error(
-      "Unable to download Bounty skills. Install git or curl, or install with `npx skills add bounty-growth/cli`."
+      "Unable to download Bounty skills. Install git or curl, or use the bundled Bounty CLI package."
     );
   }
 
@@ -240,20 +242,35 @@ function resolveTargetAgents(options: NativeInstallOptions) {
   }
 
   const detected = AGENTS.filter((agent) =>
-    existsSync(path.join(homedir(), agent.detectDir))
+    existsSync(path.join(getInstallRoot(options), agent.detectDir))
   );
 
   if (detected.length === 0) {
     throw new Error(
-      "No supported AI agent config directories were detected. Re-run with `--agent codex`, `--agent claude-code`, or another supported agent."
+      `No supported AI agent config directories were detected ${options.global ? "globally" : "in this project"}. Re-run with \`--agent codex\`, \`--agent claude-code\`, or another supported agent.`
     );
   }
 
-  return detected;
+  if (options.all) {
+    return detected;
+  }
+
+  if (detected.length === 1) {
+    return detected;
+  }
+
+  throw new Error(
+    `Multiple supported AI agents were detected ${options.global ? "globally" : "in this project"}. Re-run with \`--agent <agent>\` to choose one, or pass \`--all\` explicitly.`
+  );
 }
 
-function installForAgent(agent: AgentConfig, skills: SkillEntry[]) {
-  const skillsDir = path.join(homedir(), agent.globalSkillsDir);
+function installForAgent(
+  agent: AgentConfig,
+  skills: SkillEntry[],
+  options: NativeInstallOptions
+) {
+  const skillsDir = path.join(getInstallRoot(options), agent.skillsDir);
+  mkdirSync(skillsDir, { recursive: true });
 
   for (const skill of skills) {
     cpSync(skill.sourceDir, path.join(skillsDir, skill.name), {
@@ -262,6 +279,10 @@ function installForAgent(agent: AgentConfig, skills: SkillEntry[]) {
       filter: (source) => !path.basename(source).startsWith("."),
     });
   }
+}
+
+function getInstallRoot(options: NativeInstallOptions) {
+  return options.global ? homedir() : process.cwd();
 }
 
 function sanitizeName(name: string) {

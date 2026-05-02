@@ -15,7 +15,7 @@ export function registerSetupCommand(program: Command) {
     .command("setup")
     .description("Set up Bounty integrations for AI coding agents")
     .argument("<subcommand>", 'What to set up: "skills"')
-    .option("-g, --global", "Install skills globally", true)
+    .option("-g, --global", "Install skills globally instead of project-local")
     .option("-a, --agent <agent>", "Install skills to a specific agent")
     .option("--all", "Install skills to every detected AI coding agent")
     .action(async (subcommand: SetupSubcommand, options: SetupOptions) => {

@@ -1,63 +1,44 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { buildSkillsInstallArgs } from "./skills-install";
+import { installSkills } from "./skills-install";
 
-describe("skills install arguments", () => {
-  it("builds the default non-interactive install command", () => {
-    expect(
-      buildSkillsInstallArgs({
-        all: true,
-        global: true,
-        yes: true,
-        includeNpxYes: true,
-      })
-    ).toEqual([
-      "npx",
-      "-y",
-      "skills",
-      "add",
-      "bounty-growth/cli",
-      "--full-depth",
-      "--global",
-      "--all",
-      "--yes",
-    ]);
-  });
+describe("skills install", () => {
+  it("uses the bundled native installer by default", async () => {
+    const installSkillsNative = vi.fn();
 
-  it("targets one agent instead of all agents", () => {
-    expect(
-      buildSkillsInstallArgs({
+    await installSkills(
+      {
         agent: "codex",
-        yes: true,
-        includeNpxYes: true,
-      })
-    ).toEqual([
-      "npx",
-      "-y",
-      "skills",
-      "add",
-      "bounty-growth/cli",
-      "--full-depth",
-      "--global",
-      "--agent",
-      "codex",
-      "--yes",
-    ]);
+        global: false,
+      },
+      {
+        installSkillsNative,
+      }
+    );
+
+    expect(installSkillsNative).toHaveBeenCalledWith("bounty-growth/cli", {
+      agent: "codex",
+      all: undefined,
+      global: false,
+    });
   });
 
-  it("can omit global and confirmation flags", () => {
-    expect(
-      buildSkillsInstallArgs({
-        global: false,
-        all: true,
-      })
-    ).toEqual([
-      "npx",
-      "skills",
-      "add",
-      "bounty-growth/cli",
-      "--full-depth",
-      "--all",
-    ]);
+  it("requires all-agent installs to be explicitly requested by the caller", async () => {
+    const installSkillsNative = vi.fn();
+
+    await installSkills(
+      {
+        global: true,
+      },
+      {
+        installSkillsNative,
+      }
+    );
+
+    expect(installSkillsNative).toHaveBeenCalledWith("bounty-growth/cli", {
+      agent: undefined,
+      all: undefined,
+      global: true,
+    });
   });
 });

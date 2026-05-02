@@ -6,7 +6,6 @@ description: |
   details behind a proposed marketing action.
 allowed-tools:
   - Bash(bounty-cli *)
-  - Bash(npx bounty-cli *)
 ---
 
 # Bounty Actions
