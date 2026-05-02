@@ -1,6 +1,6 @@
 {
   "name": "bounty-cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Bounty marketing operations CLI for authenticated agent workflows.",
   "private": false,
   "license": "MIT",
@@ -28,7 +28,7 @@
     "cli",
     "agent"
   ],
-  "homepage": "https://app.bountygrowth.com",
+  "homepage": "https://www.bountygrowth.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bounty-growth/cli.git"

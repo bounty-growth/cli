@@ -13,7 +13,7 @@ export function createProgram() {
   program
     .name("bounty-cli")
     .description("Bounty marketing operations CLI")
-    .version("0.1.4")
+    .version("0.1.5")
     .showHelpAfterError();
 
   registerAuthCommands(program);
