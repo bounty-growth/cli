@@ -16,7 +16,7 @@ describe("skills install", () => {
       }
     );
 
-    expect(installSkillsNative).toHaveBeenCalledWith("bounty-growth/cli", {
+    expect(installSkillsNative).toHaveBeenCalledWith({
       agent: "codex",
       all: undefined,
       global: false,
@@ -35,7 +35,7 @@ describe("skills install", () => {
       }
     );
 
-    expect(installSkillsNative).toHaveBeenCalledWith("bounty-growth/cli", {
+    expect(installSkillsNative).toHaveBeenCalledWith({
       agent: undefined,
       all: undefined,
       global: true,
