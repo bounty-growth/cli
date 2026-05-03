@@ -1,6 +1,6 @@
 {
   "name": "bounty-cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Bounty marketing operations CLI for authenticated agent workflows.",
   "private": false,
   "license": "MIT",
