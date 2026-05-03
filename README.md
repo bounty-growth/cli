@@ -4,6 +4,8 @@ Authenticated Bounty commands for marketers, LLMs, and local agents.
 
 The CLI talks to Bounty API routes using a normal Supabase user session. It does not read Supabase tables, ClickHouse, CSV files, warehouse credentials, or service-role keys directly.
 
+Read the full [Bounty CLI documentation](https://docs.bountygrowth.com/cli/overview).
+
 ## Quick Start
 
 For AI coding agents, install the CLI skills for one agent and authenticate in
@@ -37,6 +39,38 @@ bounty-cli whoami
 The package name and installed binary are both `bounty-cli`.
 
 `npx` requires Node/npm on the machine. The package itself is bundled into a single CLI file with no npm runtime dependencies, but true no-Node distribution would need a separate native binary release, such as Homebrew or GitHub Release binaries.
+
+## Using with Claude and Codex
+
+Bounty CLI is designed to work with your LLM of choice. The CLI handles
+authentication and Bounty API access; the bundled skills teach supported agents
+how to call it for marketing workflows.
+
+Set up Codex:
+
+```bash
+npx -y bounty-cli@latest init --agent codex --browser
+```
+
+Set up Claude Code:
+
+```bash
+npx -y bounty-cli@latest init --agent claude-code --browser
+```
+
+If both agents are configured in the project, install skills for every detected
+agent:
+
+```bash
+npx -y bounty-cli@latest init --all --browser
+```
+
+After setup, restart the agent so it can discover the installed Bounty skills.
+Other LLMs can still use the CLI directly by running commands such as:
+
+```bash
+npx -y bounty-cli@latest campaigns list --json
+```
 
 ## Agent Skills
 
