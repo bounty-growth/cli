@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -41,6 +41,26 @@ describe("CLI config", () => {
     await expect(loadConfig()).resolves.toEqual({
       apiUrl: "http://localhost:3000",
     });
+  });
+
+  it("tightens permissions on existing config files", async () => {
+    await writeFile(getConfigPath(), "{}\n", { mode: 0o644 });
+    await chmod(getConfigPath(), 0o644);
+
+    await saveConfig({ apiUrl: "http://localhost:3000" });
+
+    const mode = (await stat(getConfigPath())).mode & 0o777;
+    expect(mode).toBe(0o600);
+  });
+
+  it("rejects symlinked config files", async () => {
+    const targetPath = path.join(tempDir, "target-config.json");
+    await writeFile(targetPath, "{}\n", { mode: 0o600 });
+    await symlink(targetPath, getConfigPath());
+
+    await expect(
+      saveConfig({ apiUrl: "http://localhost:3000" })
+    ).rejects.toThrow("Refusing to write Bounty CLI config through symlink");
   });
 
   it("uses environment values ahead of saved config", async () => {

@@ -106,7 +106,6 @@ function resolveBundledSkillsDir() {
   const candidates = [
     path.resolve(entrypointDir, "..", "skills"),
     path.resolve(entrypointDir, "skills"),
-    path.resolve(process.cwd(), "skills"),
   ];
 
   return candidates.find((candidate) => existsSync(candidate)) ?? null;

@@ -1,4 +1,12 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  readFile,
+  rename,
+  rm as removeFile,
+  writeFile,
+} from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
@@ -53,10 +61,43 @@ export async function loadConfig(): Promise<BountyConfig> {
 
 export async function saveConfig(config: BountyConfig) {
   const parsed = configSchema.parse(config);
+  const configPath = getConfigPath();
+  const tempPath = `${configPath}.${process.pid}.${Date.now()}.tmp`;
+
   await mkdir(getConfigDir(), { recursive: true, mode: 0o700 });
-  await writeFile(getConfigPath(), `${JSON.stringify(parsed, null, 2)}\n`, {
-    mode: 0o600,
-  });
+
+  try {
+    const stat = await lstat(configPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to write Bounty CLI config through symlink: ${configPath}`
+      );
+    }
+  } catch (error) {
+    if (!isNodeError(error, "ENOENT")) {
+      throw error;
+    }
+  }
+
+  try {
+    await writeFile(tempPath, `${JSON.stringify(parsed, null, 2)}\n`, {
+      mode: 0o600,
+      flag: "wx",
+    });
+    await chmod(tempPath, 0o600);
+    await rename(tempPath, configPath);
+
+    const stat = await lstat(configPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to write Bounty CLI config through symlink: ${configPath}`
+      );
+    }
+    await chmod(configPath, 0o600);
+  } catch (error) {
+    await removeFile(tempPath, { force: true });
+    throw error;
+  }
 }
 
 export async function updateConfig(
@@ -73,7 +114,7 @@ export async function getEffectiveConfig() {
   const apiUrl = normalizeApiUrl(
     process.env.BOUNTY_API_URL ?? config.apiUrl ?? DEFAULT_BOUNTY_API_URL
   );
-  const shouldUseNextEnvSupabase = isLocalUrl(apiUrl);
+  const shouldUseNextEnvSupabase = isLocalApiUrl(apiUrl);
 
   return {
     ...config,
@@ -103,7 +144,7 @@ export function normalizeApiUrl(value: string) {
     return normalized;
   }
 
-  if (url.protocol === "http:" && isLocalUrl(normalized)) {
+  if (url.protocol === "http:" && isLocalApiUrl(normalized)) {
     return normalized;
   }
 
@@ -122,11 +163,20 @@ export function formatConfig(
   };
 }
 
-function isLocalUrl(value: string) {
+export function isLocalApiUrl(value: string) {
   try {
     const url = new URL(value);
     return url.hostname === "localhost" || url.hostname === "127.0.0.1";
   } catch {
     return false;
   }
+}
+
+function isNodeError(error: unknown, code: string) {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === code
+  );
 }

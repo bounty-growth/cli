@@ -62,6 +62,19 @@ describe("CLI session storage", () => {
     expect(mode).toBe(0o600);
   });
 
+  it("tightens permissions before reading existing session files", async () => {
+    await mkdir(tempDir, { recursive: true });
+    await writeFile(getSessionPath(), `${JSON.stringify(storedSession)}\n`, {
+      mode: 0o644,
+    });
+    await chmod(getSessionPath(), 0o644);
+
+    await expect(loadSession()).resolves.toEqual(storedSession);
+
+    const mode = (await stat(getSessionPath())).mode & 0o777;
+    expect(mode).toBe(0o600);
+  });
+
   it("rejects symlinked session files", async () => {
     const targetPath = path.join(tempDir, "target-session.json");
     await writeFile(targetPath, "{}\n", { mode: 0o600 });
@@ -69,6 +82,18 @@ describe("CLI session storage", () => {
 
     await expect(saveSession(storedSession)).rejects.toThrow(
       "Refusing to write Bounty CLI session through symlink"
+    );
+  });
+
+  it("rejects symlinked session files on read", async () => {
+    const targetPath = path.join(tempDir, "target-session.json");
+    await writeFile(targetPath, `${JSON.stringify(storedSession)}\n`, {
+      mode: 0o600,
+    });
+    await symlink(targetPath, getSessionPath());
+
+    await expect(loadSession()).rejects.toThrow(
+      "Refusing to read Bounty CLI session through symlink"
     );
   });
 

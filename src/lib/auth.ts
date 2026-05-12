@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { BountyApiClient } from "./api-client";
 import type { CliSessionResponse } from "./api-contracts";
 import type { BountyConfig } from "./config";
-import { getEffectiveConfig } from "./config";
+import { getEffectiveConfig, normalizeApiUrl } from "./config";
 import {
   loadSession,
   saveSession,
@@ -19,33 +19,6 @@ import {
 } from "./supabase";
 
 const DEFAULT_BROWSER_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
-
-export type SignInOptions = {
-  email: string;
-  password: string;
-  config: BountyConfig & { apiUrl: string };
-  supabase?: AuthSupabaseClient;
-};
-
-export async function signInWithPassword({
-  email,
-  password,
-  config,
-  supabase = createCliSupabaseClient(config),
-}: SignInOptions) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error || !data.session) {
-    throw new Error(error?.message ?? "Supabase did not return a session");
-  }
-
-  const session = toStoredSession(data.session, config.apiUrl);
-  await saveSession(session);
-  return session;
-}
 
 export type BrowserSignInOptions = {
   config: BountyConfig & { apiUrl: string };
@@ -70,6 +43,7 @@ export async function signInWithBrowser({
     fetchImpl,
   });
   const server = createServer();
+  let redirectUri: string | null = null;
 
   const session = await new Promise<StoredSession>((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -140,17 +114,22 @@ export async function signInWithBrowser({
         return;
       }
 
-      const redirectUri = `http://127.0.0.1:${address.port}/callback`;
+      redirectUri = `http://127.0.0.1:${address.port}/callback`;
       const authorizeUrl = new URL("/cli/authorize", config.apiUrl);
       authorizeUrl.searchParams.set("redirect_uri", redirectUri);
       authorizeUrl.searchParams.set("state", state);
       authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+      authorizeUrl.searchParams.set("code_challenge_method", "S256");
 
       onAuthorizeUrl?.(authorizeUrl.toString());
       void openBrowser(authorizeUrl.toString()).catch(() => undefined);
     });
 
     async function exchangeCodeForSession(code: string) {
+      if (!redirectUri) {
+        throw new Error("Missing Bounty CLI redirect URI for token exchange");
+      }
+
       const { session: apiSession } = await client.request<CliSessionResponse>(
         "/api/cli/token",
         {
@@ -158,6 +137,7 @@ export async function signInWithBrowser({
           body: {
             code,
             codeVerifier,
+            redirectUri,
           },
         }
       );
@@ -198,6 +178,8 @@ export async function refreshStoredSession({
     throw new Error("Not logged in. Run `bounty-cli login` first.");
   }
 
+  assertSessionMatchesConfig(currentSession, config);
+
   if (!sessionNeedsRefresh(currentSession)) {
     return currentSession;
   }
@@ -214,6 +196,19 @@ export async function refreshStoredSession({
   const refreshed = toStoredSession(data.session, config.apiUrl);
   await saveSession(refreshed);
   return refreshed;
+}
+
+function assertSessionMatchesConfig(
+  session: StoredSession,
+  config: BountyConfig & { apiUrl: string }
+) {
+  const sessionApiUrl = normalizeApiUrl(session.apiUrl);
+
+  if (sessionApiUrl !== config.apiUrl) {
+    throw new Error(
+      `Stored Bounty CLI session is for ${sessionApiUrl}, but the active API URL is ${config.apiUrl}. Run \`bounty-cli login\` again for this API.`
+    );
+  }
 }
 
 export async function getAuthenticatedApiClient(fetchImpl?: typeof fetch) {
