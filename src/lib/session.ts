@@ -23,10 +23,26 @@ export function getSessionPath() {
 }
 
 export async function loadSession(): Promise<StoredSession | null> {
-  const { readFile } = await import("node:fs/promises");
+  const { chmod, lstat, readFile } = await import("node:fs/promises");
+  const sessionPath = getSessionPath();
 
   try {
-    const raw = await readFile(getSessionPath(), "utf8");
+    const stat = await lstat(sessionPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(
+        `Refusing to read Bounty CLI session through symlink: ${sessionPath}`
+      );
+    }
+    if (!stat.isFile()) {
+      throw new Error(
+        `Refusing to read non-file Bounty CLI session: ${sessionPath}`
+      );
+    }
+    if ((stat.mode & 0o077) !== 0) {
+      await chmod(sessionPath, 0o600);
+    }
+
+    const raw = await readFile(sessionPath, "utf8");
     return sessionSchema.parse(JSON.parse(raw));
   } catch (error) {
     if (

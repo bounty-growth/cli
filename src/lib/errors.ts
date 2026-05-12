@@ -2,6 +2,8 @@ const TOKEN_PATTERNS = [
   /Bearer\s+[A-Za-z0-9._~+/=-]+/gi,
   /(access_token["']?\s*[:=]\s*["']?)[^"',\s}]+/gi,
   /(refresh_token["']?\s*[:=]\s*["']?)[^"',\s}]+/gi,
+  /(accessToken["']?\s*[:=]\s*["']?)[^"',\s}]+/gi,
+  /(refreshToken["']?\s*[:=]\s*["']?)[^"',\s}]+/gi,
 ];
 
 export class BountyApiError extends Error {

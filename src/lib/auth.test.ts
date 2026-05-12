@@ -66,9 +66,31 @@ describe("CLI auth", () => {
     await expect(loadSession()).resolves.toEqual(session);
   });
 
+  it("rejects terminal email/password login outside local development", async () => {
+    const signInWithPasswordMock = vi.fn();
+
+    await expect(
+      signInWithPassword({
+        email: "user@example.com",
+        password: "password",
+        config: {
+          ...config,
+          apiUrl: "https://api.example.com",
+        },
+        supabase: {
+          auth: { signInWithPassword: signInWithPasswordMock },
+        } as never,
+      })
+    ).rejects.toThrow("only available for local development");
+
+    expect(signInWithPasswordMock).not.toHaveBeenCalled();
+  });
+
   it("stores a browser-authorized Supabase session", async () => {
     const openBrowser = vi.fn(async (authorizeUrl: string) => {
       const url = new URL(authorizeUrl);
+      expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+
       const callbackUrl = new URL(url.searchParams.get("redirect_uri")!);
       callbackUrl.searchParams.set("state", url.searchParams.get("state")!);
       callbackUrl.searchParams.set("code", "auth_code_123");
@@ -80,6 +102,9 @@ describe("CLI auth", () => {
       expect(JSON.parse(String(init?.body))).toMatchObject({
         code: "auth_code_123",
         codeVerifier: expect.any(String),
+        redirectUri: expect.stringMatching(
+          /^http:\/\/127\.0\.0\.1:\d+\/callback$/
+        ),
       });
 
       return new Response(
@@ -107,6 +132,7 @@ describe("CLI auth", () => {
     expect(openBrowser).toHaveBeenCalledTimes(1);
     expect(authorizeUrls[0]).toContain("/cli/authorize");
     expect(authorizeUrls[0]).toContain("code_challenge=");
+    expect(authorizeUrls[0]).toContain("code_challenge_method=S256");
     expect(authorizeUrls[0]).not.toContain("access_token");
     expect(authorizeUrls[0]).not.toContain("refresh_token");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -138,6 +164,30 @@ describe("CLI auth", () => {
         supabase: { auth: { refreshSession: refreshSessionMock } } as never,
       })
     ).resolves.toEqual(storedSession);
+    expect(refreshSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects stored sessions for a different API origin before reuse", async () => {
+    const storedSession: StoredSession = {
+      accessToken: "access_token_123",
+      refreshToken: "refresh_token_123",
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      userId: "user_123",
+      apiUrl: "http://localhost:3000",
+    };
+    const refreshSessionMock = vi.fn();
+
+    await expect(
+      refreshStoredSession({
+        config: {
+          ...config,
+          apiUrl: "https://api.example.com",
+        },
+        session: storedSession,
+        supabase: { auth: { refreshSession: refreshSessionMock } } as never,
+      })
+    ).rejects.toThrow("Stored Bounty CLI session is for");
+
     expect(refreshSessionMock).not.toHaveBeenCalled();
   });
 

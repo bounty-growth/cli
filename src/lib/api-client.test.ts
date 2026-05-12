@@ -52,5 +52,15 @@ describe("BountyApiClient", () => {
         "failed with Bearer token_123 and access_token=abc123"
       )
     ).toBe("failed with Bearer [redacted] and access_token=[redacted]");
+
+    const redacted = redactSensitiveText({
+      accessToken: "camel_access_token",
+      refreshToken: "camel_refresh_token",
+    });
+
+    expect(redacted).toContain('"accessToken": "[redacted]"');
+    expect(redacted).toContain('"refreshToken": "[redacted]"');
+    expect(redacted).not.toContain("camel_access_token");
+    expect(redacted).not.toContain("camel_refresh_token");
   });
 });
