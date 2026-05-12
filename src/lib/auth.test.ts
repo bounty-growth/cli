@@ -7,7 +7,6 @@ import { loadSession, saveSession, type StoredSession } from "./session";
 import {
   refreshStoredSession,
   signInWithBrowser,
-  signInWithPassword,
 } from "./auth";
 
 let tempDir: string;
@@ -41,49 +40,6 @@ describe("CLI auth", () => {
   afterEach(async () => {
     await rm(tempDir, { recursive: true, force: true });
     delete process.env.BOUNTY_CLI_CONFIG_DIR;
-  });
-
-  it("signs in with Supabase and stores the session", async () => {
-    const signInWithPasswordMock = vi.fn().mockResolvedValue({
-      data: { session: buildSupabaseSession() },
-      error: null,
-    });
-
-    const session = await signInWithPassword({
-      email: "user@example.com",
-      password: "password",
-      config,
-      supabase: {
-        auth: { signInWithPassword: signInWithPasswordMock },
-      } as never,
-    });
-
-    expect(signInWithPasswordMock).toHaveBeenCalledWith({
-      email: "user@example.com",
-      password: "password",
-    });
-    expect(session.accessToken).toBe("access_token_123");
-    await expect(loadSession()).resolves.toEqual(session);
-  });
-
-  it("rejects terminal email/password login outside local development", async () => {
-    const signInWithPasswordMock = vi.fn();
-
-    await expect(
-      signInWithPassword({
-        email: "user@example.com",
-        password: "password",
-        config: {
-          ...config,
-          apiUrl: "https://api.example.com",
-        },
-        supabase: {
-          auth: { signInWithPassword: signInWithPasswordMock },
-        } as never,
-      })
-    ).rejects.toThrow("only available for local development");
-
-    expect(signInWithPasswordMock).not.toHaveBeenCalled();
   });
 
   it("stores a browser-authorized Supabase session", async () => {

@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { BountyApiClient } from "./api-client";
 import type { CliSessionResponse } from "./api-contracts";
 import type { BountyConfig } from "./config";
-import { getEffectiveConfig, isLocalApiUrl, normalizeApiUrl } from "./config";
+import { getEffectiveConfig, normalizeApiUrl } from "./config";
 import {
   loadSession,
   saveSession,
@@ -19,40 +19,6 @@ import {
 } from "./supabase";
 
 const DEFAULT_BROWSER_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
-export const PASSWORD_LOGIN_LOCAL_ONLY_MESSAGE =
-  "Email/password login is only available for local development. Run `bounty-cli login` to use browser authorization.";
-
-export type SignInOptions = {
-  email: string;
-  password: string;
-  config: BountyConfig & { apiUrl: string };
-  supabase?: AuthSupabaseClient;
-};
-
-export async function signInWithPassword({
-  email,
-  password,
-  config,
-  supabase,
-}: SignInOptions) {
-  if (!isLocalApiUrl(config.apiUrl)) {
-    throw new Error(PASSWORD_LOGIN_LOCAL_ONLY_MESSAGE);
-  }
-
-  const authClient = supabase ?? createCliSupabaseClient(config);
-  const { data, error } = await authClient.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error || !data.session) {
-    throw new Error(error?.message ?? "Supabase did not return a session");
-  }
-
-  const session = toStoredSession(data.session, config.apiUrl);
-  await saveSession(session);
-  return session;
-}
 
 export type BrowserSignInOptions = {
   config: BountyConfig & { apiUrl: string };
